@@ -1,13 +1,18 @@
 /*
- * Project Sensors-Test
+ * Project: IOT Weather station
  * Description:
- * Author:
- * Date:
+ * Author: Matthew Martin
+ * Date: December 2020
  */
 
 #include "thingspeak-webhooks.h"
 #include "Particle.h"
 #include "secrets.h"
+#include "Adafruit_AM2315.h"
+
+Adafruit_AM2315 am2315;
+
+// TODO: Maybe some day we configure sleep mode
 
 ThingSpeakWebhooks thingspeak;
 String csvData;
@@ -18,9 +23,11 @@ const int channelID = CHANNEL_ID;
 
 volatile unsigned long anemCount, rainCount;
 uint64_t last_time, rainLastTime;
-double windSpeed, windDirection, rainFall, temperature, humidity;
+double windSpeed, windDirection, rainFall;
+float temperature, humidity;
 
-#define SAMPLE_DELAY (60)
+#define SAMPLE_DELAY (120)
+
 
 // setup() runs once, when the device is first turned on.
 void setup() 
@@ -46,6 +53,11 @@ void setup()
 
   attachInterrupt(2, ANEM_ISR, RISING);
   attachInterrupt(3, RAIN_ISR, FALLING);
+
+  if (! am2315.begin()) {
+     Serial.println("Sensor not found, check wiring & pullups!");
+     Particle.publish("AM2315 Failed to init!");
+  }
 }
 
 void loop() 
@@ -65,6 +77,18 @@ void loop()
       rainCount = 0;
     }
     // ===================================
+
+    // Read temp and humidity
+    if (! am2315.readTemperatureAndHumidity(temperature, humidity)) 
+    {
+      Serial.println("Failed to read data from AM2315");
+      Particle.publish("Failed to read AM2315!");
+      return;
+    }
+
+    // Convert temperature to F
+    temperature *= 1.8;
+    temperature += 32;
     
     // Calculate wind speed 
     windSpeed /= (2.0 * SAMPLE_DELAY); // Two pulses per rev, 2 sec sampling period
@@ -85,6 +109,12 @@ void loop()
 
     Serial.print("Rain ammount: ");
     Serial.println(rainFall);
+
+    Serial.print("Temp *F: "); 
+    Serial.println(temperature);
+
+    Serial.print("Hum %: "); 
+    Serial.println(humidity);
 
     // Build the data string
     csvData = 
