@@ -60,6 +60,8 @@ void setup()
      Serial.println("Sensor not found, check wiring & pullups!");
      Particle.publish("AM2315 Failed to init!");
   }
+
+  Particle.publishVitals(1800);
 }
 
 void loop() 
