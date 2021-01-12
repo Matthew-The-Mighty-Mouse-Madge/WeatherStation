@@ -14,8 +14,6 @@ Adafruit_AM2315 am2315;
 
 // TODO: Maybe some day we configure sleep mode
 
-// TODO: Publish vitals every so often
-
 ThingSpeakWebhooks thingspeak;
 String csvData;
 String time_format = "absolute";
